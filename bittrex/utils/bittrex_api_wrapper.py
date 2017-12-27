@@ -6,12 +6,27 @@ import json
 
 
 class BittrexAPI:
+    MARKET_TICKS_ENDPOINT = 'https://bittrex.com/Api/v2.0/pub/market/GetTicks?marketName={}&tickInterval={}'
     MARKET_SUMMARY_ENDPOINT = 'https://bittrex.com/api/v1.1/public/getmarketsummary?market={}'
     NON_EXISTING_MARKET_MESSAGE = 'INVALID_MARKET'
 
     @staticmethod
+    @retry(URLError, tries=5, delay=1, backoff=2)
+    def get_ticks(market, interval):
+        request_url = BittrexAPI.MARKET_TICKS_ENDPOINT.format(market, interval)
+        with url_request.urlopen(request_url) as connection:
+            response = connection.read()
+            response = json.loads(response.decode('utf-8'))
+
+        if response['success']:
+            return response['result']
+
+        raise ConnectionError('Bittrex API returned failed response for the market {} with a message {}'
+                              .format(market, response['message']))
+
+    @staticmethod
     def filter_non_existing_markets(markets):
-        """Takes a list of market names and returns all markets from the list that exist one the Bittrex exchange"""
+        """Takes a list of market names and returns all datagatherers from the list that exist one the Bittrex exchange"""
         checker_threads = []
         existing_markets = []
         non_existing_markets = []

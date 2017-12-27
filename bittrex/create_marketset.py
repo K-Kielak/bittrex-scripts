@@ -1,5 +1,5 @@
-# Script that chooses markets of altcoins for which data will be gathered that will/is used for
-# machine learning. Run it if you want to start gathering data about some additional altcoin markets.
+# Script that chooses markets of altcoins and saves them to the database.
+# Run it if you want to start gathering data about some additional altcoin datagatherers.
 
 # If you want to delete or stop gathering data for a specific altcoin market (and you are 200% sure you want to do it)
 # you need to do it manually from the database. This is due to the fact that continous data is critical at the moment,
@@ -8,13 +8,15 @@
 import os
 from pymongo import MongoClient
 
-from marketset.marketset_creator import create_marketset
+from datagatherers.marketset_creator import create_marketset
 
 # Specify properties for the training coinsset
 LIMIT = None  # limits the result to the top <limit> altcoins by market cap
 MIN_MARKET_CAP = 20000000  # specifies the minimal market_cap for chosen chosen altcoin
-# specifies the name of the collection where market names of a chosen altcoins will be saved in the database
-COLLECTION_NAME = 'markets'
+# specifies the name of the collection where market names of a chosen altcoins will be saved in the database,
+# 'allMarkets' is default name where for markets for which data is gathered, use different name if you want to create
+# different marketset or marketsubset
+COLLECTION_NAME = 'allMarkets'
 
 
 DATABASE_URI_ENV = 'BITTREX_DATA_DB_URI'
