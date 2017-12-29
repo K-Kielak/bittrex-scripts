@@ -1,4 +1,4 @@
-from threading import Thread
+from concurrent.futures import ThreadPoolExecutor
 from retry import retry
 from urllib import request as url_request
 from urllib.error import URLError
@@ -27,18 +27,10 @@ class BittrexAPI:
     @staticmethod
     def filter_non_existing_markets(markets):
         """Takes a list of market names and returns all markets from the list that exist one the Bittrex exchange"""
-        checker_threads = []
-        existing_markets = []
-        non_existing_markets = []
-        for market in markets:
-            checker = Thread(target=BittrexAPI._classify_markets, args=(market, existing_markets,non_existing_markets))
-            checker.start()
-            checker_threads.append(checker)
+        with ThreadPoolExecutor(max_workers=10) as executor:
+            markets_existance = zip(markets, executor.map(BittrexAPI.exists, markets))
 
-        for checker in checker_threads:
-            checker.join()
-
-        return existing_markets, non_existing_markets
+        return [market for market, exists in markets_existance if exists]
 
     @staticmethod
     @retry(URLError, tries=5, delay=1, backoff=2)
@@ -57,10 +49,3 @@ class BittrexAPI:
 
         raise ConnectionError('There is a problem with request url, either on our or on the bittrex side,'
                               'try to run {} url in a browser to investigate'.format(request_url))
-
-    @staticmethod
-    def _classify_markets(market, existing_markets, non_existing_markets):
-        if BittrexAPI.exists(market):
-            existing_markets.append(market)
-        else:
-            non_existing_markets.append(market)

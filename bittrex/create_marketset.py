@@ -10,7 +10,7 @@ from pymongo import MongoClient
 
 from datagatherers.marketset_creator import create_marketset
 
-# Specify properties for the training coinsset
+# Specify properties for creating marketset
 LIMIT = None  # limits the result to the top <limit> altcoins by market cap
 MIN_MARKET_CAP = 20000000  # specifies the minimal market_cap for chosen chosen altcoin
 # specifies the name of the collection where market names of a chosen altcoins will be saved in the database,

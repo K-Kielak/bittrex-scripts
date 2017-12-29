@@ -13,25 +13,22 @@ def create_marketset(db_collection, min_market_cap=None, limit=None):
 def _get_markets(min_market_cap=None, limit=None):
     coins_statistics = CoinsStatistics()
     altcoins = coins_statistics.get_top_altcoins(min_market_cap=min_market_cap, limit=limit)
-    altcoin_markets = map(lambda coin: 'BTC-' + coin['symbol'], altcoins)
-    altcoin_markets, non_existing_markets = BittrexAPI.filter_non_existing_markets(altcoin_markets)
+    markets = ['BTC-' + coin['symbol'] for coin in altcoins]
+    existing_markets = BittrexAPI.filter_non_existing_markets(markets)
+    print("Marketset gathered successfully, {} markets gathered".format(len(existing_markets)))
+    print("Non existing markets: ({})".format(len(markets) - len(existing_markets)))
 
-    print("Marketset gathered successfully, {} datagatherers gathered".format(len(altcoin_markets)))
-    print("Non existing datagatherers: ({})".format(len(non_existing_markets)))
-    for market in non_existing_markets:
-        print(market)
-
-    return altcoin_markets
+    return existing_markets
 
 
 def _save_markets(db_collection, markets):
     # map list of names to the appropiate json format
-    altcoin_markets = list(map(lambda market_name: {'market_name': market_name}, markets))
+    altcoin_markets = [{'market_name': market_name} for market_name in markets]
     # create index to guarantee datagatherers uniqueness in case when the collection doesn't exist yet
     db_collection.create_index('market_name', unique=True)
     try:
         db_collection.insert_many(altcoin_markets, ordered=False)
-    except BulkWriteError as bwe:
+    except BulkWriteError:
         # if there is even one duplicate in inserted data database throws BulkWriteError,
         # just ignore it, all non-duplicates were inserted successfully
         pass
