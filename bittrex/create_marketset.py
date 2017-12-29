@@ -24,9 +24,10 @@ if DATABASE_URI_ENV not in os.environ:
     raise EnvironmentError('Database URI is not set under {}, '
                            'please set it before running the script again'.format(DATABASE_URI_ENV))
 
-database_uri = os.environ[DATABASE_URI_ENV]
-# database name is always the string after the last slash ('/')
-db_name = database_uri.rsplit('/', 1)[-1]
-db_client = MongoClient(database_uri)
-markets_collection = db_client[db_name][COLLECTION_NAME]
-create_marketset(markets_collection, min_market_cap=MIN_MARKET_CAP, limit=LIMIT)
+if __name__ == '__main__':
+    database_uri = os.environ[DATABASE_URI_ENV]
+    # database name is always the string after the last slash ('/')
+    db_name = database_uri.rsplit('/', 1)[-1]
+    db_client = MongoClient(database_uri)
+    markets_collection = db_client[db_name][COLLECTION_NAME]
+    create_marketset(markets_collection, min_market_cap=MIN_MARKET_CAP, limit=LIMIT)

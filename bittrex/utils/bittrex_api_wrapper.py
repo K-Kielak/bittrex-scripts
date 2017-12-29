@@ -26,7 +26,7 @@ class BittrexAPI:
 
     @staticmethod
     def filter_non_existing_markets(markets):
-        """Takes a list of market names and returns all datagatherers from the list that exist one the Bittrex exchange"""
+        """Takes a list of market names and returns all markets from the list that exist one the Bittrex exchange"""
         checker_threads = []
         existing_markets = []
         non_existing_markets = []
