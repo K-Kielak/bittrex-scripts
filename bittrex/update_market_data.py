@@ -17,7 +17,7 @@ if DATABASE_URI_ENV not in os.environ:
 if __name__ == '__main__':
     database_uri = os.environ[DATABASE_URI_ENV]
     db_name = database_uri.rsplit('/', 1)[-1]
-    db_client = MongoClient(database_uri, maxPoolSize=None)
+    db_client = MongoClient(database_uri)
     database = db_client[db_name]
 
     marketset_collection = database[MARKETSSET_COLLECTION_NAME]
