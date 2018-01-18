@@ -1,7 +1,7 @@
 from pymongo.errors import BulkWriteError
 
-from utils.bittrex_api_wrapper import BittrexAPI
-from utils.coins_statistics import CoinsStatistics
+from apis.bittrex_api_wrapper import BittrexAPI
+from apis.coinmarketcap_api_wrapper import CoinmarketcapAPI
 
 
 def create_marketset(db_collection, min_market_cap=None, limit=None):
@@ -11,8 +11,7 @@ def create_marketset(db_collection, min_market_cap=None, limit=None):
 
 
 def _get_markets(min_market_cap=None, limit=None):
-    coins_statistics = CoinsStatistics()
-    altcoins = coins_statistics.get_top_altcoins(min_market_cap=min_market_cap, limit=limit)
+    altcoins = CoinmarketcapAPI.get_top_altcoins(min_market_cap=min_market_cap, limit=limit)
     markets = ['BTC-' + coin['symbol'] for coin in altcoins]
     existing_markets = BittrexAPI.filter_non_existing_markets(markets)
     print("Marketset gathered successfully, {} markets gathered".format(len(existing_markets)))

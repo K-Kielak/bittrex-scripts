@@ -1,11 +1,11 @@
+import json
 from concurrent.futures import ThreadPoolExecutor
 from retry import retry
 from urllib import request as url_request
 from urllib.error import URLError
-import json
 
 
-class BittrexAPI:
+class BittrexAPI(object):
     MARKET_TICKS_ENDPOINT = 'https://bittrex.com/Api/v2.0/pub/market/GetTicks?marketName={}&tickInterval={}'
     MARKET_SUMMARY_ENDPOINT = 'https://bittrex.com/api/v1.1/public/getmarketsummary?market={}'
     NON_EXISTING_MARKET_MESSAGE = 'INVALID_MARKET'

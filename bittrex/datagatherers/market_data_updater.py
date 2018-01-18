@@ -4,7 +4,7 @@ from concurrent.futures import ThreadPoolExecutor
 from retry import retry
 from pymongo.errors import BulkWriteError, AutoReconnect
 
-from utils.bittrex_api_wrapper import BittrexAPI
+from apis.bittrex_api_wrapper import BittrexAPI
 
 
 def update_market_data(markets, intervals, database):
