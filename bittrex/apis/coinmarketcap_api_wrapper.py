@@ -10,7 +10,7 @@ class CoinmarketcapAPI(object):
     @staticmethod
     @retry(URLError, tries=5, delay=1, backoff=2)
     def get_all_coins():
-        '''Returns all coins from the Coinmarketcap site'''
+        """Returns all coins from the Coinmarketcap site"""
         with url_request.urlopen(CoinmarketcapAPI.COINS_STATISTICS_ENDPOINT) as connection:
             response = connection.read()
             coins = json.loads(response.decode('utf-8'))

@@ -6,8 +6,6 @@
 # and we don't want to stop gathering it, or even worse, delete it by accident.
 
 import os
-from pymongo import MongoClient
-
 from datagatherers.marketset_creator import create_marketset
 
 # Specify properties for creating marketset
@@ -26,8 +24,4 @@ if DATABASE_URI_ENV not in os.environ:
 
 if __name__ == '__main__':
     database_uri = os.environ[DATABASE_URI_ENV]
-    # database name is always the string after the last slash ('/')
-    db_name = database_uri.rsplit('/', 1)[-1]
-    db_client = MongoClient(database_uri)
-    markets_collection = db_client[db_name][COLLECTION_NAME]
-    create_marketset(markets_collection, min_market_cap=MIN_MARKET_CAP, limit=LIMIT)
+    create_marketset(database_uri, COLLECTION_NAME, min_market_cap=MIN_MARKET_CAP, limit=LIMIT)
