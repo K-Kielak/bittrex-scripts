@@ -5,6 +5,8 @@ from retry import retry
 
 
 class BittrexDAO(object):
+    MARKET_NAME_LABEL = 'market_name'
+
     def __init__(self, database_uri):
         db_name = database_uri.rsplit('/', 1)[-1]
         self.db_client = MongoClient(database_uri)
@@ -20,9 +22,9 @@ class BittrexDAO(object):
     def save_market_names(self, marketset_collection_name, markets):
         collection = self.database[marketset_collection_name]
         # map list of names to the appropiate json format
-        markets = [{'market_name': market_name} for market_name in markets]
+        markets = [{BittrexDAO.MARKET_NAME_LABEL: market_name} for market_name in markets]
         # create index to guarantee datagatherers uniqueness in case when the collection doesn't exist yet
-        collection.create_index('market_name', unique=True)
+        collection.create_index(BittrexDAO.MARKET_NAME_LABEL, unique=True)
         try:
             collection.insert_many(markets, ordered=False)
         except BulkWriteError:
@@ -33,8 +35,8 @@ class BittrexDAO(object):
     @retry(AutoReconnect, tries=5, delay=1, backoff=2)
     def get_market_names(self, marketset_collection_name):
         marketset_collection = self.database[marketset_collection_name]
-        marketset = marketset_collection.find()
-        return [market['market_name'] for market in marketset]
+        marketset = marketset_collection.find({}, {'_id': False})
+        return [market[BittrexDAO.MARKET_NAME_LABEL] for market in marketset]
 
     @retry(AutoReconnect, tries=5, delay=1, backoff=2)
     def save_ticks(self, ticks, ticks_type):
@@ -53,3 +55,14 @@ class BittrexDAO(object):
             # if there is even one duplicate in inserted data database throws BulkWriteError,
             # just ignore it, all non-duplicates were inserted successfully
             pass
+
+    @retry(AutoReconnect, tries=5, delay=1, backoff=2)
+    def get_ticks(self, ticks_type):
+        """
+        :param ticks_type: ticks type, should be in format:
+                <bittrex-interval><base_coin_symbol><quote_coin_symbol>; i.e: oneMinBTCOMG
+        :return: ticks retrieved from the database
+        """
+        ticks_collection = self.database[ticks_type]
+        ticks = ticks_collection.find({}, {'_id': False})
+        return [tick for tick in ticks]
