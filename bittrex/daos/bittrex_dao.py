@@ -1,3 +1,4 @@
+from apis.bittrex_api import TIMESPAN_LABEL
 from pymongo import MongoClient
 from pymongo.errors import AutoReconnect
 from pymongo.errors import BulkWriteError
@@ -48,7 +49,7 @@ class BittrexDAO(object):
         """
         collection = self.database[ticks_type]
         # create index to guarantee timespans uniqueness in case when the collection doesn't exist yet
-        collection.create_index('T', unique=True)
+        collection.create_index(TIMESPAN_LABEL, unique=True)
         try:
             collection.insert_many(ticks, ordered=False)
         except BulkWriteError:
@@ -57,12 +58,15 @@ class BittrexDAO(object):
             pass
 
     @retry(AutoReconnect, tries=5, delay=1, backoff=2)
-    def get_ticks(self, ticks_type):
+    def get_ticks(self, ticks_type, starting_from=None):
         """
         :param ticks_type: ticks type, should be in format:
                 <bittrex-interval><base_coin_symbol><quote_coin_symbol>; i.e: oneMinBTCOMG
+        :param starting_from: starting date given in the date object
         :return: ticks retrieved from the database
         """
         ticks_collection = self.database[ticks_type]
-        ticks = ticks_collection.find({}, {'_id': False})
-        return [tick for tick in ticks]
+        if starting_from is not None:
+            return list(ticks_collection.find({{TIMESPAN_LABEL: {"$gt": starting_from}}}, {'_id': False}))
+
+        return list(ticks_collection.find({}, {'_id': False}))

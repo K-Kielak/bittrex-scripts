@@ -1,15 +1,35 @@
+import re
+import itertools
+from apis.bittrex_api import OPEN_LABEL, HIGH_LABEL, LOW_LABEL, \
+    CLOSE_LABEL, VOLUME_LABEL, TIMESPAN_LABEL, BASE_VOLUME_LABEL
+from concurrent.futures import ThreadPoolExecutor
+from daos.bittrex_dao import BittrexDAO
+from daos.processed_data_dao import ProcessedDataDAO
+from daos.processed_data_dao import TICKS_LABEL
 from datetime import timedelta
-from dateutil.parser import parse
 
+EMA_SIZE = 20
+STATE_SIZE = 200
 MAGNITUDE_CHANGE = 10**8
 
-OPEN_LABEL = 'O'
-HIGH_LABEL = 'H'
-LOW_LABEL = 'L'
-CLOSE_LABEL = 'C'
-VOLUME_LABEL = 'V'
-TIMESPAN_LABEL = 'T'
-BASE_VOLUME_LABEL = 'BV'
+
+def update_preprocessed_data(raw_data_db_uri, marketsset_collection, intervals, preprocessed_data_db_uri):
+    with BittrexDAO(raw_data_db_uri) as bittrex_dao, ProcessedDataDAO(preprocessed_data_db_uri) as processed_data_dao:
+        markets = bittrex_dao.get_market_names(marketsset_collection)
+        market_interval_pairs = itertools.product(markets, intervals)
+        pool_args = [(market, interval, bittrex_dao, processed_data_dao) for market, interval in market_interval_pairs]
+        print('{} seperate datasets to update'.format(len(pool_args)))
+        with ThreadPoolExecutor(max_workers=10) as executor:
+            executor.map(lambda args: _get_preprocess_and_save_ticks(*args), pool_args)
+
+
+def _get_preprocess_and_save_ticks(market_name, interval, bittrex_dao, processed_data_dao):
+    ticks_type = interval + re.sub(r'\W+', '', market_name)
+    latest_processed_timespan = processed_data_dao.get_latest_state_timespan(ticks_type)
+    raw_ticks = bittrex_dao.get_ticks(ticks_type, starting_from=latest_processed_timespan)
+    raw_ticks = fill_empty_timespans(raw_ticks)
+    states = convert_ticks_to_states(raw_ticks)
+    processed_data_dao.save_states(states, ticks_type)
 
 
 def fill_empty_timespans(ticks, interval):
@@ -20,10 +40,6 @@ def fill_empty_timespans(ticks, interval):
     :return: ticks with all the gaps filled with ticks that have all prices set to the same value as the last tick
             closing price and with volume set to 0
     """
-    # convert string date to date object to make finding gaps easier
-    for t in ticks:
-        t[TIMESPAN_LABEL] = parse(t[TIMESPAN_LABEL])
-
     i = 0
     while i < (len(ticks) - 1):
         time_difference = ticks[i + 1][TIMESPAN_LABEL] - ticks[i][TIMESPAN_LABEL]
@@ -45,26 +61,30 @@ def fill_empty_timespans(ticks, interval):
     return ticks
 
 
-def convert_ticks_to_states(ticks, state_size, ema_size):
+def convert_ticks_to_states(ticks):
     """
     Convert whole ticks to the list of states
     :param ticks: market ticks that will be used to generate states
     :param state_size: expected state size, i.e. how many ticks should one state take into consideration
     :param ema_size: how many ticks before the state should be used to calculate exponential moving average to which
             state ticks will relate
-    :return: list of states, each state consisting of state_size state ticks that were related to its EMA
+    :return: list of states, each state consists of state_size state ticks that were related to its EMA and state
+            timespan
     """
     # change magnitude to avoid vanishing values due to low altcoin prices
     ticks = _change_ticks_magnitude(ticks, MAGNITUDE_CHANGE)
-    ticks_needed_for_one_state = state_size + ema_size
+    ticks_needed_for_one_state = STATE_SIZE + EMA_SIZE
     states = []
     for i in range(0, len(ticks) - ticks_needed_for_one_state):
-        print('.')  # TODO delete
         # take ticks to calculate ema, reverse them (step -1) so they are sorted in descending importance
-        ema_ticks = ticks[(i+ema_size):i:-1]
+        ema_ticks = ticks[(i+EMA_SIZE):i:-1]
         ema = calculate_ema(ema_ticks)  # TODO can you calculate ema iteratively so it runs faster?
-        state_ticks = convert_ticks_to_state_ticks(ticks[i+ema_size:i+ticks_needed_for_one_state], ema)
-        states.append(state_ticks)
+        state_ticks = convert_ticks_to_state_ticks(ticks[i+EMA_SIZE:i+ticks_needed_for_one_state], ema)
+        state = {
+            TIMESPAN_LABEL: ticks[i+ticks_needed_for_one_state][TIMESPAN_LABEL],
+            TICKS_LABEL: state_ticks
+        }
+        states.append(state)
 
     return states
 
@@ -83,7 +103,7 @@ def convert_ticks_to_state_ticks(ticks, ema):
             HIGH_LABEL: 100 * (t[HIGH_LABEL] - ema) / ema,
             LOW_LABEL: 100 * (t[LOW_LABEL] - ema) / ema,
             CLOSE_LABEL: 100 * (t[CLOSE_LABEL] - ema) / ema,
-            VOLUME_LABEL: t[VOLUME_LABEL]
+            TIMESPAN_LABEL: t[TIMESPAN_LABEL]
         })
 
     return state_ticks

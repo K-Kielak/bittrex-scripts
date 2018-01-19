@@ -1,9 +1,17 @@
 import json
 from concurrent.futures import ThreadPoolExecutor
+from dateutil.parser import parse
 from retry import retry
 from urllib import request as url_request
 from urllib.error import URLError
 
+OPEN_LABEL = 'O'
+HIGH_LABEL = 'H'
+LOW_LABEL = 'L'
+CLOSE_LABEL = 'C'
+VOLUME_LABEL = 'V'
+TIMESPAN_LABEL = 'T'
+BASE_VOLUME_LABEL = 'BV'
 
 MARKET_TICKS_ENDPOINT = 'https://bittrex.com/Api/v2.0/pub/market/GetTicks?marketName={}&tickInterval={}'
 MARKET_SUMMARY_ENDPOINT = 'https://bittrex.com/api/v1.1/public/getmarketsummary?market={}'
@@ -18,10 +26,18 @@ def get_ticks(market, interval):
         response = json.loads(response.decode('utf-8'))
 
     if response['success']:
-        return response['result']
+        ticks = response['result']
+        return _ticks_timespan_to_date_object(ticks)
 
     raise ConnectionError('Bittrex API returned failed response for the market {} with a message {}'
                           .format(market, response['message']))
+
+
+def _ticks_timespan_to_date_object(ticks):
+    for t in ticks:
+        t[TIMESPAN_LABEL] = parse(t[TIMESPAN_LABEL])
+
+    return ticks
 
 
 def filter_non_existing_markets(markets):
