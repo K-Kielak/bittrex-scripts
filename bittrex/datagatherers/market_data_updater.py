@@ -1,6 +1,6 @@
 import re
 import itertools
-from apis.bittrex_api_wrapper import BittrexAPI
+from apis.bittrex_api import get_ticks
 from concurrent.futures import ThreadPoolExecutor
 from daos.bittrex_dao import BittrexDAO
 
@@ -18,7 +18,7 @@ def update_market_data(intervals, database_uri, collection_name):
 # Method is not separated to first get and then save because we want to make this 2 operations at the same time so
 # RAM memory is not overloaded with holding all of the financial data before saving it
 def _get_and_save_ticks(market_name, interval, dao):
-    ticks = BittrexAPI.get_ticks(market_name, interval)
+    ticks = get_ticks(market_name, interval)
     # non-alphanumeric characters are split for MongoDB to make later querying easier
     ticks_type = interval + re.sub(r'\W+', '', market_name)
     dao.save_ticks(ticks, ticks_type)
