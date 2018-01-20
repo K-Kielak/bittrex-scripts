@@ -1,5 +1,5 @@
 import pymongo
-from apis.bittrex_api import TIMESPAN_LABEL  # processed data uses the same labels for ticks as bittrex data
+from bittrex.apis.bittrex_api import TIMESPAN_LABEL  # processed data uses the same labels for ticks as bittrex data
 from pymongo import MongoClient
 from pymongo.errors import AutoReconnect
 from pymongo.errors import BulkWriteError

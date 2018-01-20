@@ -1,11 +1,11 @@
 import re
 import itertools
-from apis.bittrex_api import OPEN_LABEL, HIGH_LABEL, LOW_LABEL, \
+from bittrex.apis.bittrex_api import OPEN_LABEL, HIGH_LABEL, LOW_LABEL, \
     CLOSE_LABEL, VOLUME_LABEL, TIMESPAN_LABEL, BASE_VOLUME_LABEL
+from bittrex.daos.bittrex_dao import BittrexDAO
+from bittrex.daos.processed_data_dao import ProcessedDataDAO
+from bittrex.daos.processed_data_dao import TICKS_LABEL
 from concurrent.futures import ThreadPoolExecutor
-from daos.bittrex_dao import BittrexDAO
-from daos.processed_data_dao import ProcessedDataDAO
-from daos.processed_data_dao import TICKS_LABEL
 from datetime import timedelta
 
 EMA_SIZE = 20

@@ -1,5 +1,5 @@
 import os
-from datagatherers.market_data_updater import update_market_data
+from bittrex.datagatherers.market_data_updater import update_market_data
 
 # Specify properties for updating markets
 INTERVALS = ['oneMin', 'fiveMin']  # Time intervals for which to gather data (look at Bittrex API for more information)

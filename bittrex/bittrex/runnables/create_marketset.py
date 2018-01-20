@@ -6,7 +6,7 @@
 # and we don't want to stop gathering it, or even worse, delete it by accident.
 
 import os
-from datagatherers.marketset_creator import create_marketset
+from bittrex.datagatherers.marketset_creator import create_marketset
 
 # Specify properties for creating marketset
 LIMIT = None  # limits the result to the top <limit> altcoins by market cap

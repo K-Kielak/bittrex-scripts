@@ -1,4 +1,4 @@
-from apis.bittrex_api import TIMESPAN_LABEL
+from bittrex.apis.bittrex_api import TIMESPAN_LABEL
 from pymongo import MongoClient
 from pymongo.errors import AutoReconnect
 from pymongo.errors import BulkWriteError

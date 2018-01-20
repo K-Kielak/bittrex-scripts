@@ -1,6 +1,6 @@
-from apis.bittrex_api import filter_non_existing_markets
-from apis.coinmarketcap_api import get_top_altcoins
-from daos.bittrex_dao import BittrexDAO
+from bittrex.apis.bittrex_api import filter_non_existing_markets
+from bittrex.apis.coinmarketcap_api import get_top_altcoins
+from bittrex.daos.bittrex_dao import BittrexDAO
 
 
 def create_marketset(database_uri, collection_name, min_market_cap=None, limit=None):

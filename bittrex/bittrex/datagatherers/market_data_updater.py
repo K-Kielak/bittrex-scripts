@@ -1,8 +1,8 @@
 import re
 import itertools
-from apis.bittrex_api import get_ticks
+from bittrex.apis.bittrex_api import get_ticks
+from bittrex.daos.bittrex_dao import BittrexDAO
 from concurrent.futures import ThreadPoolExecutor
-from daos.bittrex_dao import BittrexDAO
 
 
 def update_market_data(intervals, database_uri, collection_name):
