@@ -12,7 +12,10 @@ def update_market_data(intervals, database_uri, collection_name):
         pool_args = [(market, interval, bittrex_dao) for market, interval in market_interval_pairs]
         print('{} seperate datasets to update'.format(len(pool_args)))
         with ThreadPoolExecutor(max_workers=10) as executor:
-            executor.map(lambda args: _get_and_save_ticks(*args), pool_args)
+            futures = executor.map(lambda args: _get_and_save_ticks(*args), pool_args)
+            # check for exceptions
+            for _ in futures:
+                pass
 
 
 # Method is not separated to first get and then save because we want to make this 2 operations at the same time so

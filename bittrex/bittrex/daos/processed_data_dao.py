@@ -10,8 +10,8 @@ TICKS_LABEL = 'Ticks'
 
 class ProcessedDataDAO(object):
     def __init__(self, database_uri):
-        db_name = database_uri.rsplit('/', 1)[-1]
-        self.db_client = MongoClient(database_uri)
+        host, db_name = database_uri.rsplit('/', 1)
+        self.db_client = MongoClient(host)
         self.database = self.db_client[db_name]
 
     def __enter__(self):
@@ -44,10 +44,14 @@ class ProcessedDataDAO(object):
         :param ticks_type: ticks type, should be in format:
             <bittrex-interval><base_coin_symbol><quote_coin_symbol>; i.e: oneMinBTCOMG
         :return: timespan date object of the most recent state in the database by timespan
+            or None if there are no states in the database
         """
         db_response = self.database[ticks_type]\
             .find({}, {TIMESPAN_LABEL: True, '_id': False})\
             .sort(TIMESPAN_LABEL, pymongo.DESCENDING)\
             .limit(1)
 
-        return list(db_response)[0][TIMESPAN_LABEL]
+        if db_response.count(True) != 1:
+            return None
+
+        return db_response.next()[TIMESPAN_LABEL]

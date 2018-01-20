@@ -5,6 +5,7 @@ from bittrex.apis.bittrex_api import OPEN_LABEL, HIGH_LABEL, LOW_LABEL, \
 from bittrex.daos.bittrex_dao import BittrexDAO
 from bittrex.daos.processed_data_dao import ProcessedDataDAO
 from bittrex.daos.processed_data_dao import TICKS_LABEL
+from bittrex.invalid_ticks_exception import InvalidTicksException
 from concurrent.futures import ThreadPoolExecutor
 from datetime import timedelta
 
@@ -19,17 +20,37 @@ def update_preprocessed_data(raw_data_db_uri, marketsset_collection, intervals, 
         market_interval_pairs = itertools.product(markets, intervals)
         pool_args = [(market, interval, bittrex_dao, processed_data_dao) for market, interval in market_interval_pairs]
         print('{} seperate datasets to update'.format(len(pool_args)))
-        with ThreadPoolExecutor(max_workers=10) as executor:
-            executor.map(lambda args: _get_preprocess_and_save_ticks(*args), pool_args)
+        with ThreadPoolExecutor(max_workers=5) as executor:
+            futures = executor.map(lambda args: _get_preprocess_and_save_ticks(*args), pool_args)
+            # check for exceptions
+            for _ in futures:
+                pass
 
 
 def _get_preprocess_and_save_ticks(market_name, interval, bittrex_dao, processed_data_dao):
+    if interval != 'oneMin':
+        raise InvalidTicksException('Preprocessing doesn work for ticks with interval different than oneMin. '
+                                    'TODO figure it out')  # TODO
+
     ticks_type = interval + re.sub(r'\W+', '', market_name)
     latest_processed_timespan = processed_data_dao.get_latest_state_timespan(ticks_type)
-    raw_ticks = bittrex_dao.get_ticks(ticks_type, starting_from=latest_processed_timespan)
-    raw_ticks = fill_empty_timespans(raw_ticks)
+    print('last updated entry for {} for {} interval is from {}'
+          .format(market_name, interval, str(latest_processed_timespan)))
+    if latest_processed_timespan:
+        # TODO look at the exception at the top of the function
+        earliest_timespan_needed = latest_processed_timespan - timedelta(minutes=1*(STATE_SIZE + EMA_SIZE))
+        raw_ticks = bittrex_dao.get_ticks(ticks_type, starting_from=earliest_timespan_needed)
+    else:
+        raw_ticks = bittrex_dao.get_ticks(ticks_type)
+
+    raw_ticks = fill_empty_timespans(raw_ticks, 1)  # TODO look at the exception at the top of the function
     states = convert_ticks_to_states(raw_ticks)
+    if not states:
+        print('data for {} for {} is up to date'.format(market_name, interval))
+        return
+
     processed_data_dao.save_states(states, ticks_type)
+    print('{} for {} interval updated'.format(market_name, interval))
 
 
 def fill_empty_timespans(ticks, interval):
@@ -42,9 +63,15 @@ def fill_empty_timespans(ticks, interval):
     """
     i = 0
     while i < (len(ticks) - 1):
-        time_difference = ticks[i + 1][TIMESPAN_LABEL] - ticks[i][TIMESPAN_LABEL]
-        if time_difference / timedelta(minutes=1) != interval:
+        time_difference = (ticks[i + 1][TIMESPAN_LABEL] - ticks[i][TIMESPAN_LABEL]) / timedelta(minutes=1)
+        if time_difference < interval:
+            raise InvalidTicksException('One of the ticks has a wrong timespan or given interval is wrong. '
+                                        'Tick occured sooner than the expected timespan '
+                                        '(previous tick timespan + interval)')
+
+        if time_difference > interval:
             filler_tick = {
+
                 OPEN_LABEL: ticks[i][CLOSE_LABEL],
                 HIGH_LABEL: ticks[i][CLOSE_LABEL],
                 LOW_LABEL: ticks[i][CLOSE_LABEL],
@@ -53,7 +80,6 @@ def fill_empty_timespans(ticks, interval):
                 TIMESPAN_LABEL: ticks[i][TIMESPAN_LABEL] + timedelta(minutes=interval),
                 BASE_VOLUME_LABEL: 0
             }
-
             ticks.insert(i + 1, filler_tick)
 
         i += 1
@@ -65,9 +91,6 @@ def convert_ticks_to_states(ticks):
     """
     Convert whole ticks to the list of states
     :param ticks: market ticks that will be used to generate states
-    :param state_size: expected state size, i.e. how many ticks should one state take into consideration
-    :param ema_size: how many ticks before the state should be used to calculate exponential moving average to which
-            state ticks will relate
     :return: list of states, each state consists of state_size state ticks that were related to its EMA and state
             timespan
     """
@@ -103,7 +126,7 @@ def convert_ticks_to_state_ticks(ticks, ema):
             HIGH_LABEL: 100 * (t[HIGH_LABEL] - ema) / ema,
             LOW_LABEL: 100 * (t[LOW_LABEL] - ema) / ema,
             CLOSE_LABEL: 100 * (t[CLOSE_LABEL] - ema) / ema,
-            TIMESPAN_LABEL: t[TIMESPAN_LABEL]
+            VOLUME_LABEL: t[VOLUME_LABEL]
         })
 
     return state_ticks
