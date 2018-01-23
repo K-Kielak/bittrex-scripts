@@ -67,6 +67,6 @@ class BittrexDAO(object):
         """
         ticks_collection = self.database[ticks_type]
         if starting_from is not None:
-            return list(ticks_collection.find({TIMESPAN_LABEL: {"$gt": starting_from}}, {'_id': False}))
+            return list(ticks_collection.find({TIMESPAN_LABEL: {"$gte": starting_from}}, {'_id': False}))
 
         return list(ticks_collection.find({}, {'_id': False}))

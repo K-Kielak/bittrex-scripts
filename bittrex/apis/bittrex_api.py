@@ -1,6 +1,7 @@
 import json
 from concurrent.futures import ThreadPoolExecutor
 from dateutil.parser import parse
+from enum import Enum
 from retry import retry
 from urllib import request as url_request
 from urllib.error import URLError
@@ -16,6 +17,14 @@ BASE_VOLUME_LABEL = 'BV'
 MARKET_TICKS_ENDPOINT = 'https://bittrex.com/Api/v2.0/pub/market/GetTicks?marketName={}&tickInterval={}'
 MARKET_SUMMARY_ENDPOINT = 'https://bittrex.com/api/v1.1/public/getmarketsummary?market={}'
 NON_EXISTING_MARKET_MESSAGE = 'INVALID_MARKET'
+
+
+class Interval(Enum):
+    oneMin = 1
+    fiveMin = 5
+    thirtyMin = 30
+    hour = 60
+    day = 1440
 
 
 @retry(URLError, tries=5, delay=1, backoff=2)
