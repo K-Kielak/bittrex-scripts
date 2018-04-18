@@ -1,5 +1,7 @@
 import json
 from concurrent.futures import ThreadPoolExecutor
+from http.client import RemoteDisconnected
+
 from dateutil.parser import parse
 from enum import Enum
 from retry import retry
@@ -36,6 +38,10 @@ def get_ticks(market, interval):
 
     if response['success']:
         ticks = response['result']
+        if not ticks:
+            print('couldn\'t get {} for {}'.format(market, interval))
+            return []
+
         return _ticks_timespan_to_date_object(ticks)
 
     raise ConnectionError('Bittrex API returned failed response for the market {} with a message {}'

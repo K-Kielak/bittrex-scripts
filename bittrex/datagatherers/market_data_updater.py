@@ -22,6 +22,9 @@ def update_market_data(intervals, database_uri, collection_name):
 # RAM memory is not overloaded with holding all of the financial data before saving it
 def _get_and_save_ticks(market_name, interval, dao):
     ticks = get_ticks(market_name, interval)
+    if not ticks:
+        return
+
     # non-alphanumeric characters are split for MongoDB to make later querying easier
     ticks_type = interval + re.sub(r'\W+', '', market_name)
     dao.save_ticks(ticks, ticks_type)

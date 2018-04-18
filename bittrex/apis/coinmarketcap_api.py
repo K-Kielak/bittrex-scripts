@@ -3,6 +3,7 @@ from retry import retry
 from urllib import request as url_request
 from urllib.error import URLError
 
+
 COINS_STATISTICS_ENDPOINT = 'https://api.coinmarketcap.com/v1/ticker?limit=0'
 
 
@@ -24,6 +25,6 @@ def get_top_altcoins(min_market_cap=None, limit=None):
         altcoins = filter(lambda coin: float(coin['market_cap_usd'] or 0) > min_market_cap, altcoins)
 
     if limit is not None:
-        altcoins = sorted(altcoins, key=lambda coin: float(coin['market_cap_usd'] or 0))[:90]
+        altcoins = sorted(altcoins, key=lambda coin: -float(coin['market_cap_usd'] or 0))[:limit]
 
     return list(altcoins)
